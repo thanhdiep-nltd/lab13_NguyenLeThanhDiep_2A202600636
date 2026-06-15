@@ -1,12 +1,72 @@
 {
-  "team": "TODO-team-name",
+  "team": "my-team",
   "schema_version": 1,
   "findings": [
     {
       "fault_class": "latency_spike",
-      "evidence": {"metric": "latency_p95_ms", "observed": "TODO from your telemetry", "trace_ids": []},
-      "root_cause": "TODO: what config knob or behavior causes it?",
-      "suggested_fix": "TODO: config change and/or wrapper mitigation"
+      "evidence": {"metric": "latency_p95_ms", "observed": "Over 20000ms latency observed in multi-step runs before caching and context reduction.", "trace_ids": []},
+      "root_cause": "Large default context_size of 8 coupled with high temperature (1.6) and lack of request-level caching in the wrapper.",
+      "suggested_fix": "Reduce context_size to 3 in config.json and implement thread-safe caching in wrapper.py."
+    },
+    {
+      "fault_class": "infinite_loop",
+      "evidence": {"metric": "max_steps_status_count", "observed": "Requests repeatedly hit max_steps limit due to infinite loops of check_stock tool calls.", "trace_ids": []},
+      "root_cause": "loop_guard configuration was disabled by default, allowing the agent to loop tool calls indefinitely.",
+      "suggested_fix": "Set loop_guard to true and reduce max_steps to 6 in config.json."
+    },
+    {
+      "fault_class": "pii_leak",
+      "evidence": {"metric": "pii_leak_count", "observed": "Agent repeated raw customer phone numbers (e.g. 0901234567) in answers.", "trace_ids": []},
+      "root_cause": "redact_pii was set to false in config.json and system prompt did not forbid repeating customer info.",
+      "suggested_fix": "Enable redact_pii in config.json, add output regex-redaction in wrapper.py, and instruct the agent to protect PII in prompt.txt."
+    },
+    {
+      "fault_class": "tool_failure",
+      "evidence": {"metric": "macbook_out_of_stock_errors", "observed": "MacBook orders were always falsely reported as out of stock.", "trace_ids": []},
+      "root_cause": "A hardcoded catalog_override in config.json forced MacBook availability in_stock to false.",
+      "suggested_fix": "Remove the MacBook entry from catalog_override in config.json."
+    },
+    {
+      "fault_class": "error_spike",
+      "evidence": {"metric": "tool_call_error_rate", "observed": "Tool calls failed intermittently with transient errors (18% tool error rate).", "trace_ids": []},
+      "root_cause": "retry was disabled by default in config.json, allowing temporary tool failures to crash the agent.",
+      "suggested_fix": "Enable retry in config.json with max_attempts: 3 and backoff_ms: 100."
+    },
+    {
+      "fault_class": "fabrication",
+      "evidence": {"metric": "invalid_totals_count", "observed": "Agent computed total prices for out-of-stock items and unserved destinations instead of refusing.", "trace_ids": []},
+      "root_cause": "The system prompt was too generic, encouraging estimation of prices instead of strict grounding in tool outputs.",
+      "suggested_fix": "Rewrite system prompt to strictly refuse orders and output 'Tu choi don hang.' when tools report unavailability or shipping failure."
+    },
+    {
+      "fault_class": "cost_blowup",
+      "evidence": {"metric": "total_cost_usd", "observed": "High token usage and cost incurred due to verbose system logging and unnecessarily large context size of 8.", "trace_ids": []},
+      "root_cause": "verbose_system was set to true and context_size was set to 8 in the default config, causing excessive tokens to be sent on every turn.",
+      "suggested_fix": "Set verbose_system to false and reduce context_size to 3 in config.json."
+    },
+    {
+      "fault_class": "quality_drift",
+      "evidence": {"metric": "quality_drift_p95", "observed": "Degraded correctness and quality scores observed in late turns of multi-turn sessions.", "trace_ids": []},
+      "root_cause": "The agent drifted over long conversations because context_reset_every was set to 0 (disabled) and session_drift_rate was 0.06.",
+      "suggested_fix": "Set context_reset_every to 4 in config.json to reset the conversation state periodically."
+    },
+    {
+      "fault_class": "arithmetic_error",
+      "evidence": {"metric": "incorrect_totals_percentage", "observed": "Agent calculated incorrect total prices (e.g. adding extra zeros or incorrect additions) due to LLM math weakness.", "trace_ids": []},
+      "root_cause": "gpt-5.4-nano is math-incompetent and temperature was set to 1.6, leading to highly unstable and incorrect arithmetic calculations.",
+      "suggested_fix": "Reduce temperature to 0.2, instruct the agent with an exact formula in prompt.txt, and implement math validation/correction in wrapper.py."
+    },
+    {
+      "fault_class": "tool_overuse",
+      "evidence": {"metric": "tools_used_count", "observed": "Agent frequently called tools multiple times redundantly or in inefficient sequences, increasing latency and cost.", "trace_ids": []},
+      "root_cause": "tool_budget was set to 0 (unlimited) and system prompt did not specify tool calling limits or strict order constraints.",
+      "suggested_fix": "Set tool_budget to 3 in config.json and explicitly specify strict tool execution order in prompt.txt."
+    },
+    {
+      "fault_class": "prompt_injection",
+      "evidence": {"metric": "injection_vulnerability", "observed": "Agent obeyed fake prices or commands embedded in user-supplied order notes (GHI CHÚ) instead of tool outputs.", "trace_ids": []},
+      "root_cause": "System prompt did not instruct the agent to treat order notes as raw data, allowing instructions in the note to override system commands.",
+      "suggested_fix": "Add wrapper sanitization to strip numeric values/instructions from order notes and instruct the agent to ignore any commands inside 'GHI CHÚ' in prompt.txt."
     }
   ]
 }

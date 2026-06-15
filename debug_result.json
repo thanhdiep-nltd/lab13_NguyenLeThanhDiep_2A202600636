@@ -1,0 +1,58 @@
+{
+  "answer": "Tong cong: 66030500 VND",
+  "status": "ok",
+  "steps": 3,
+  "trace": [
+    {
+      "step": 1,
+      "action": "check_stock({'item_name': 'iPhone'})",
+      "tool": "check_stock",
+      "observation": {
+        "item": "iphone",
+        "found": true,
+        "in_stock": true,
+        "quantity": 12,
+        "unit_price_vnd": 22000000,
+        "weight_kg": 0.5
+      }
+    },
+    {
+      "step": 2,
+      "action": "get_discount({'coupon_code': ''})",
+      "tool": "get_discount",
+      "observation": {
+        "code": "",
+        "valid": false,
+        "percent": 0,
+        "error": "invalid_coupon"
+      }
+    },
+    {
+      "step": 3,
+      "action": "calc_shipping({'weight_kg': 1.5, 'destination': 'Hai Phong'})",
+      "tool": "calc_shipping",
+      "observation": {
+        "destination": "hai phong",
+        "weight_kg": 1.5,
+        "cost_vnd": 30500
+      }
+    }
+  ],
+  "meta": {
+    "model": "gpt-5.4-nano",
+    "provider": "openai",
+    "latency_ms": 7308,
+    "usage": {
+      "prompt_tokens": 6414,
+      "completion_tokens": 76,
+      "total_tokens": 6490
+    },
+    "session_id": "prv-080",
+    "turn_index": 0,
+    "tools_used": [
+      "check_stock",
+      "get_discount",
+      "calc_shipping"
+    ]
+  }
+}
